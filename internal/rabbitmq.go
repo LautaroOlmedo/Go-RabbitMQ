@@ -63,3 +63,7 @@ func (rC *RabbitClient) Send(ctx context.Context, exchange, routingKey string, o
 func (rC *RabbitClient) Consume(queue, consumer string, autoAck bool) (<-chan amqp.Delivery, error) {
 	return rC.ch.Consume(queue, consumer, autoAck, false, false, false, nil)
 }
+
+func (rC *RabbitClient) ApplyQos(count, size int, global bool) error {
+	return rC.ch.Qos(count, size, global)
+}

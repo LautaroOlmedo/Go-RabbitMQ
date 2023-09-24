@@ -38,6 +38,11 @@ func main() {
 
 	g, ctx := errgroup.WithContext(ctx)
 
+	// apply a hard limit on the Server
+	if err := client.ApplyQos(10, 0, true); err != nil {
+		panic(err)
+	}
+
 	// errgroup allows us concurrent tasks
 	g.SetLimit(10)
 	go func() {
