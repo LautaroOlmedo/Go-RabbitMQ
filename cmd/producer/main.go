@@ -26,28 +26,22 @@ func main() {
 		panic(err)
 	}
 
-	if err := client.CreateQueue("customers_test", false, true); err != nil {
-		panic(err)
-	}
-
 	if err := client.CreateBinding("customers_created", "customers.created.*", "customer_events"); err != nil {
-		panic(err)
-	}
-
-	if err := client.CreateBinding("customers_test", "customers.*", "customer_events"); err != nil {
 		panic(err)
 	}
 
 	myContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := client.Send(myContext, "customer_events", "customers.created.us", amqp.Publishing{
-		ContentType:  "text/plain",
-		DeliveryMode: amqp.Persistent,
-		Body:         []byte(`Lautaro`),
-	}); err != nil {
-		panic(err)
-	}
+	for i := 0; i < 10; i++ {
+		if err := client.Send(myContext, "customer_events", "customers.created.us", amqp.Publishing{
+			ContentType:  "text/plain",
+			DeliveryMode: amqp.Persistent,
+			Body:         []byte(`A new cool message ;)`),
+		}); err != nil {
+			panic(err)
+		}
 
-	time.Sleep(20 * time.Second)
+	}
 	log.Println(client)
+
 }

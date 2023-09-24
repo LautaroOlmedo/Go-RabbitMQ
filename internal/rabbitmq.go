@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"log"
 )
 
 type RabbitClient struct {
@@ -20,6 +21,9 @@ func ConnectRabbitMQ(username, password, host, vhost string) (*amqp.Connection, 
 func NewRabbitMQClient(conn *amqp.Connection) (RabbitClient, error) {
 	ch, err := conn.Channel()
 	if err != nil {
+		return RabbitClient{}, err
+	}
+	if err := ch.Confirm(false); err != nil {
 		return RabbitClient{}, err
 	}
 
@@ -46,7 +50,13 @@ func (rC *RabbitClient) CreateBinding(queueName, binding, exchange string) error
 
 func (rC *RabbitClient) Send(ctx context.Context, exchange, routingKey string, options amqp.Publishing) error {
 	// Mandatory is used to determine if an error should be returned upon failure
-	return rC.ch.PublishWithContext(ctx, exchange, routingKey, true, false, options)
+	confirmation, err := rC.ch.PublishWithDeferredConfirmWithContext(ctx, exchange, routingKey, true, false, options)
+
+	if err != nil {
+		return err
+	}
+	log.Println(confirmation.Wait())
+	return nil
 }
 
 // Consume is used to consume a queue

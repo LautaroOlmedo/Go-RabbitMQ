@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"golang.org/x/sync/errgroup"
 	"log"
+
 	"rabbitMQ/internal"
+	"time"
 )
 
 func main() {
@@ -27,17 +31,31 @@ func main() {
 
 	var blocking chan struct{}
 
+	// set a timeout for 15 secs
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	// errgroup allows us concurrent tasks
+	g.SetLimit(10)
 	go func() {
-		for msg := range messageBus {
-			log.Printf("New Message %v \n", msg)
-			if err := msg.Ack(false); err != nil {
-				log.Printf("Acknowledge message failed")
-				continue
-			}
-			log.Printf("Acknowledge message %s\n", msg.MessageId)
+		for message := range messageBus {
+			// spawn a worker
+			msg := message
+			g.Go(func() error {
+				log.Printf("New message: %v", msg)
+				time.Sleep(10 * time.Second)
+				if err := msg.Ack(false); err != nil {
+					log.Println("Ack message failed")
+					return err
+				}
+				log.Printf("Acknowledged message %s\n", message.MessageId)
+				return nil
+			})
 		}
 	}()
-
 	log.Println("Consuming, to close the program press CTRL+C")
 
 	<-blocking
