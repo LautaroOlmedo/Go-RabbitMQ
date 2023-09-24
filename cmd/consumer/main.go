@@ -12,21 +12,24 @@ import (
 func main() {
 	conn, err := internal.ConnectRabbitMQ("lautaro", "secret", "localhost:5672", "customers")
 	if err != nil {
-		panic(err)
+		log.Fatalf("error when connecting to RabbitMQ: %v", err)
+		return
 	}
 	defer conn.Close()
 
 	client, err := internal.NewRabbitMQClient(conn)
 
 	if err != nil {
-		panic(err)
+		log.Fatalf("error when creating the RabbitMQ client: %v", err)
+		return
 	}
 	defer client.Close()
 
 	messageBus, err := client.Consume("customers_created", "email-service", false)
 
 	if err != nil {
-		panic(err)
+		log.Fatalf("error while consuming messages: %v", err)
+		return
 	}
 
 	var blocking chan struct{}
@@ -40,7 +43,8 @@ func main() {
 
 	// apply a hard limit on the Server
 	if err := client.ApplyQos(10, 0, true); err != nil {
-		panic(err)
+		log.Fatalf("error applying strict limit to server: %v", err)
+		return
 	}
 
 	// errgroup allows us concurrent tasks
